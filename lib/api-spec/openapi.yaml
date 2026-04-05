@@ -1,0 +1,754 @@
+openapi: 3.1.0
+info:
+  # Do not change the title, if the title changes, the import paths will be broken
+  title: Api
+  version: 0.1.0
+  description: API specification
+servers:
+  - url: /api
+    description: Base API path
+tags:
+  - name: health
+    description: Health operations
+  - name: auth
+    description: Authentication operations
+  - name: articles
+    description: Article operations
+  - name: admin
+    description: Admin operations
+paths:
+  /healthz:
+    get:
+      operationId: healthCheck
+      tags: [health]
+      summary: Health check
+      description: Returns server health status
+      responses:
+        "200":
+          description: Healthy
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/HealthStatus"
+
+  /auth/me:
+    get:
+      operationId: getMe
+      tags: [auth]
+      summary: Get current session user
+      responses:
+        "200":
+          description: Current user or null
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MeResponse"
+
+  /auth/subscribe-initiate:
+    post:
+      operationId: subscribeInitiate
+      tags: [auth]
+      summary: Initiate subscription (create Razorpay order)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/SubscribeInitiateRequest"
+      responses:
+        "200":
+          description: Razorpay order created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SubscribeInitiateResponse"
+        "400":
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /auth/verify-token:
+    post:
+      operationId: verifyToken
+      tags: [auth]
+      summary: Verify magic link token
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/VerifyTokenRequest"
+      responses:
+        "200":
+          description: Token verified
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/VerifyTokenResponse"
+        "400":
+          description: Invalid or expired token
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /auth/create-account:
+    post:
+      operationId: createAccount
+      tags: [auth]
+      summary: Create account after payment
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateAccountRequest"
+      responses:
+        "200":
+          description: Account created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AuthUserResponse"
+        "400":
+          description: Error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /auth/login:
+    post:
+      operationId: login
+      tags: [auth]
+      summary: Login with email and password
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/LoginRequest"
+      responses:
+        "200":
+          description: Login successful
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AuthUserResponse"
+        "401":
+          description: Invalid credentials
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /auth/logout:
+    post:
+      operationId: logout
+      tags: [auth]
+      summary: Logout current session
+      responses:
+        "200":
+          description: Logged out
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SuccessResponse"
+
+  /auth/forgot-password:
+    post:
+      operationId: forgotPassword
+      tags: [auth]
+      summary: Request password reset email
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ForgotPasswordRequest"
+      responses:
+        "200":
+          description: Reset email sent
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SuccessResponse"
+
+  /auth/reset-password:
+    post:
+      operationId: resetPassword
+      tags: [auth]
+      summary: Reset password using token
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ResetPasswordRequest"
+      responses:
+        "200":
+          description: Password reset
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SuccessResponse"
+        "400":
+          description: Invalid or expired token
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /articles:
+    get:
+      operationId: listArticles
+      tags: [articles]
+      summary: List articles (paginated)
+      parameters:
+        - name: page
+          in: query
+          schema:
+            type: integer
+            default: 1
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 10
+        - name: filter
+          in: query
+          schema:
+            type: string
+            enum: [all, most-loved, search]
+        - name: q
+          in: query
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Article list
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ArticleListResponse"
+
+  /articles/most-loved:
+    get:
+      operationId: getMostLovedArticles
+      tags: [articles]
+      summary: Get most-loved articles
+      responses:
+        "200":
+          description: Most loved articles
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ArticleListResponse"
+
+  /articles/{slug}:
+    get:
+      operationId: getArticle
+      tags: [articles]
+      summary: Get a single article by slug
+      parameters:
+        - name: slug
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Article detail
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ArticleDetailResponse"
+        "404":
+          description: Not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /articles/{slug}/like:
+    post:
+      operationId: likeArticle
+      tags: [articles]
+      summary: Like an article
+      parameters:
+        - name: slug
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Like registered
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/LikeResponse"
+        "401":
+          description: Not authenticated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /admin/subscribers:
+    get:
+      operationId: listSubscribers
+      tags: [admin]
+      summary: List all subscribers
+      responses:
+        "200":
+          description: Subscriber list
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SubscriberListResponse"
+        "403":
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /admin/articles:
+    get:
+      operationId: adminListArticles
+      tags: [admin]
+      summary: List all articles (admin)
+      responses:
+        "200":
+          description: Article list
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ArticleListResponse"
+        "403":
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+    post:
+      operationId: createArticle
+      tags: [admin]
+      summary: Create an article
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ArticleInput"
+      responses:
+        "201":
+          description: Article created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ArticleDetailResponse"
+        "403":
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /admin/articles/{id}:
+    put:
+      operationId: updateArticle
+      tags: [admin]
+      summary: Update an article
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ArticleInput"
+      responses:
+        "200":
+          description: Article updated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ArticleDetailResponse"
+        "403":
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "404":
+          description: Not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+    delete:
+      operationId: deleteArticle
+      tags: [admin]
+      summary: Delete an article
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Article deleted
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SuccessResponse"
+        "403":
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+components:
+  schemas:
+    HealthStatus:
+      type: object
+      properties:
+        status:
+          type: string
+      required:
+        - status
+
+    ErrorResponse:
+      type: object
+      properties:
+        error:
+          type: string
+      required:
+        - error
+
+    SuccessResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+      required:
+        - success
+
+    UserPublic:
+      type: object
+      properties:
+        id:
+          type: integer
+        email:
+          type: string
+        name:
+          type: string
+        role:
+          type: string
+          enum: [subscriber, admin]
+        isActive:
+          type: boolean
+      required:
+        - id
+        - email
+        - name
+        - role
+        - isActive
+
+    MeResponse:
+      type: object
+      properties:
+        user:
+          oneOf:
+            - $ref: "#/components/schemas/UserPublic"
+            - type: "null"
+      required:
+        - user
+
+    AuthUserResponse:
+      type: object
+      properties:
+        user:
+          $ref: "#/components/schemas/UserPublic"
+      required:
+        - user
+
+    SubscribeInitiateRequest:
+      type: object
+      properties:
+        email:
+          type: string
+          format: email
+        name:
+          type: string
+        phone:
+          type: string
+        plan:
+          type: string
+          enum: [monthly, yearly]
+        region:
+          type: string
+          enum: [IN, INTL]
+      required:
+        - email
+        - name
+        - plan
+        - region
+
+    SubscribeInitiateResponse:
+      type: object
+      properties:
+        razorpayOrderId:
+          type: string
+        razorpayKeyId:
+          type: string
+        amount:
+          type: integer
+        currency:
+          type: string
+      required:
+        - razorpayOrderId
+        - razorpayKeyId
+        - amount
+        - currency
+
+    VerifyTokenRequest:
+      type: object
+      properties:
+        token:
+          type: string
+      required:
+        - token
+
+    VerifyTokenResponse:
+      type: object
+      properties:
+        email:
+          type: string
+        name:
+          type: string
+        plan:
+          type: string
+          enum: [monthly, yearly]
+        region:
+          type: string
+          enum: [IN, INTL]
+      required:
+        - email
+        - name
+        - plan
+        - region
+
+    CreateAccountRequest:
+      type: object
+      properties:
+        token:
+          type: string
+        password:
+          type: string
+      required:
+        - token
+        - password
+
+    LoginRequest:
+      type: object
+      properties:
+        email:
+          type: string
+          format: email
+        password:
+          type: string
+      required:
+        - email
+        - password
+
+    ForgotPasswordRequest:
+      type: object
+      properties:
+        email:
+          type: string
+          format: email
+      required:
+        - email
+
+    ResetPasswordRequest:
+      type: object
+      properties:
+        token:
+          type: string
+        password:
+          type: string
+      required:
+        - token
+        - password
+
+    ArticleSummary:
+      type: object
+      properties:
+        id:
+          type: integer
+        title:
+          type: string
+        slug:
+          type: string
+        summary:
+          type: string
+        thumbnailUrl:
+          type: string
+          nullable: true
+        isFree:
+          type: boolean
+        publishedAt:
+          type: string
+          nullable: true
+        likesCount:
+          type: integer
+      required:
+        - id
+        - title
+        - slug
+        - summary
+        - isFree
+        - likesCount
+
+    ArticleDetail:
+      type: object
+      properties:
+        id:
+          type: integer
+        title:
+          type: string
+        slug:
+          type: string
+        summary:
+          type: string
+        thumbnailUrl:
+          type: string
+          nullable: true
+        body:
+          type: string
+          nullable: true
+        isFree:
+          type: boolean
+        isLocked:
+          type: boolean
+        publishedAt:
+          type: string
+          nullable: true
+        likesCount:
+          type: integer
+      required:
+        - id
+        - title
+        - slug
+        - summary
+        - isFree
+        - isLocked
+        - likesCount
+
+    ArticleListResponse:
+      type: object
+      properties:
+        articles:
+          type: array
+          items:
+            $ref: "#/components/schemas/ArticleSummary"
+        total:
+          type: integer
+        page:
+          type: integer
+        limit:
+          type: integer
+      required:
+        - articles
+        - total
+        - page
+        - limit
+
+    ArticleDetailResponse:
+      type: object
+      properties:
+        article:
+          $ref: "#/components/schemas/ArticleDetail"
+      required:
+        - article
+
+    ArticleInput:
+      type: object
+      properties:
+        title:
+          type: string
+        slug:
+          type: string
+        summary:
+          type: string
+        thumbnailUrl:
+          type: string
+          nullable: true
+        body:
+          type: string
+        isFree:
+          type: boolean
+        publishedAt:
+          type: string
+          nullable: true
+      required:
+        - title
+        - slug
+        - summary
+        - body
+        - isFree
+
+    LikeResponse:
+      type: object
+      properties:
+        likesCount:
+          type: integer
+      required:
+        - likesCount
+
+    SubscriberItem:
+      type: object
+      properties:
+        id:
+          type: integer
+        email:
+          type: string
+        name:
+          type: string
+        plan:
+          type: string
+        status:
+          type: string
+        region:
+          type: string
+        createdAt:
+          type: string
+      required:
+        - id
+        - email
+        - name
+        - plan
+        - status
+        - region
+        - createdAt
+
+    SubscriberListResponse:
+      type: object
+      properties:
+        subscribers:
+          type: array
+          items:
+            $ref: "#/components/schemas/SubscriberItem"
+      required:
+        - subscribers
