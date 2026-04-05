@@ -2,6 +2,7 @@ import { useEffect, useState, useRef } from "react";
 import { ChevronDown, Menu, X, Lock } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import heroImg from "@assets/Hero_Image_1775320241204.JPG";
+import logoImg from "@assets/Logo_1775389630576.png";
 
 type Article = {
   id: number;
@@ -63,12 +64,21 @@ function Navbar() {
       <div className="max-w-[900px] mx-auto px-6 h-14 flex items-center justify-between">
         <button
           onClick={() => scrollTo("hero")}
-          className={`font-serif text-[1rem] tracking-wide transition-colors ${
-            scrolled ? "text-foreground" : "text-white"
-          }`}
-          style={scrolled ? {} : { textShadow: "0 1px 6px rgba(0,0,0,0.5)" }}
+          className="flex items-center focus:outline-none"
+          aria-label="Back to top"
         >
-          ak
+          <img
+            src={logoImg}
+            alt="Akshit Kumar"
+            style={{
+              height: "36px",
+              width: "auto",
+              filter: scrolled
+                ? "none"
+                : "brightness(0) invert(1) drop-shadow(0 1px 3px rgba(0,0,0,0.4))",
+              transition: "filter 0.3s",
+            }}
+          />
         </button>
 
         <nav className="hidden md:flex items-center gap-8">
